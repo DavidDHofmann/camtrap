@@ -330,7 +330,7 @@ validateDirectories <- function(object) {
 
   # Return answer
   if (any(noparse)) {
-      warning("Could not parse fetchdates for:", basename(cams)[noparse], "\n")
+      warning("Could not parse fetchdates for: ", basename(cams)[noparse], "\n")
     } else {
       cat("Successfully parsed fetchdates across all cameras.\n")
   }
@@ -845,7 +845,7 @@ checkMegadetector <- function(megadetector_dir, error = T) {
   env_exists <- "cameratraps-detector" %in% conda_list()$name
 
   # If anything is missing, state this
-  if (!all(c(dirs_exist, models_exist, runfile_exists, env_exists))) {
+  if (!all(c(dirs_exist, models_exist, runfile_exists))) {
     if (error) {
       stop("Some files are missing. Please run 'downloadMegadetector()'\n")
     } else {
@@ -1127,11 +1127,13 @@ assignLocations <- function(object, deployments, outfile = NULL, cluster = 0, fo
 
 # Function to extract data from a camtrap object
 extractData <- function(object, what = "metadata") {
-  what <- match.arg(what, choices = c("metadata", "unlocated", "detections", "locations"))
+  what <- match.arg(what, choices = c("metadata", "unlocated", "detections", "locations", "classifications"))
   if (what == "metadata") {
-    toreturn <- left_join(object@metadata, dplyr::select(object@detections, -Camera), by = "Filepath", keep = )
+    toreturn <- object@metadata
   } else if (what == "unlocated") {
     toreturn <- subset(object@metadata, is.na(Location))
+  } else if (what == "classifications") {
+    toreturn <- object@classifications
   } else if (what == "detections") {
     toreturn <- object@detections
   } else {

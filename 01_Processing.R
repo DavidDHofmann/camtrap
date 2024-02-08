@@ -9,7 +9,7 @@ rm(list = ls())
 ################################################################################
 # Specify necessary directories
 camtrap    <- "/home/david/ownCloud/Dokumente/Bibliothek/Wissen/R-Scripts/camtrap"
-megadir    <- "/home/david/git"
+megadir    <- "/home/david/Megadetector"
 pythondir  <- "/home/david/miniconda3"
 
 imagedir   <- "/home/david/Schreibtisch/Example/HardDrive1"
@@ -83,8 +83,7 @@ findDotfiles(dat, remove = T)
 validateDirectories(dat)
 
 # Read the metadata
-dat <- loadMetadata(dat, outfile = file, batchsize = 1000, overwrite = T)
-dat
+dat <- loadMetadata(dat, outfile = file, batchsize = 5, overwrite = T)
 
 # Check image dimensions
 table(dat@metadata$ImageWidth)
@@ -104,6 +103,7 @@ dat
 
 # Verify the megadetector is installed correctly
 # checkMegadetector(megadir, error = T)
+# installMegadetector()
 
 # Run the detector
 dat <- runMegadetector(dat
@@ -133,6 +133,7 @@ summarizeUnlocated(dat)
 
 # Get images (with animals)
 subdat <- subset(dat, Category == "animal" & Confidence >= 0.1)
+plot(subdat, index = 1)
 
 # If you'd like to drop images containing humans
 # toremove <- subset(dat, Category == "person")
