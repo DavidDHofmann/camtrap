@@ -9,15 +9,20 @@ rm(list = ls())
 ################################################################################
 # Specify necessary directories
 camtrap    <- "/home/david/ownCloud/Dokumente/Bibliothek/Wissen/R-Scripts/camtrap"
-megadir    <- "/home/david/Megadetector"
+megadir    <- "/home/david/git"
 pythondir  <- "/home/david/miniconda3"
 
-imagedir   <- "/home/david/Schreibtisch/Example/HardDrive1"
-transfer   <- "/home/david/Schreibtisch/Example/HardDrive2"
-collection <- "Collection_2023-05"
+imagedir   <- "/media/david/SHUTTLE"
+transfer   <- "/media/david/SHUTTLE/Processed"
+collection <- "Update_2023-12-21"
 
-deployment <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/01_Deployments.xlsx"
-correction <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/04_Corrections.xlsx"
+# Temporary
+megadir    <- "/home/david/Megadetector"
+imagedir   <- "/home/david/Schreibtisch"
+collection <- "Meerkats"
+
+# deployment <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/01_Deployments.xlsx"
+# correction <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/04_Corrections.xlsx"
 
 # Specify file to which you want to store the camtrap object
 file       <- file.path(imagedir, paste0(collection, ".rds"))
@@ -42,8 +47,8 @@ library(reticulate)  # To use python functions
 #### Pre-Requisites
 ################################################################################
 # Load deployments, corrections, and classifications (if they exist)
-deploy <- parseDeployments(deployment) %>% select(Camera, Longitude, Latitude, Start, End)
-correc <- parseCorrections(correction)
+# deploy <- parseDeployments(deployment) %>% select(Camera, Longitude, Latitude, Start, End)
+# correc <- parseCorrections(correction)
 
 # Specify filepath to which the camtrap object should be stored
 if (file.exists(file)) {
@@ -83,23 +88,26 @@ findDotfiles(dat, remove = T)
 validateDirectories(dat)
 
 # Read the metadata
-dat <- loadMetadata(dat, outfile = file, batchsize = 5, overwrite = T)
+dat <- loadMetadata(dat, outfile = file, batchsize = 1000, overwrite = T)
 
 # Check image dimensions
 table(dat@metadata$ImageWidth)
 table(dat@metadata$ImageHeight)
 
 # Resize images that require resizing
-dat <- resizeImages(dat
-  , width     = 1920
-  , height    = 1080
-  , outfile   = file
-  , overwrite = T
-)
+# dat <- resizeImages(dat
+#   , width     = 1920
+#   , height    = 1080
+#   , outfile   = file
+#   , overwrite = T
+# )
 
 # Read detections
 dat <- loadDetections(dat, outfile = file, overwrite = T)
 dat
+
+# Write to file
+writeCamtrap(dat, file = file, overwrite = T)
 
 # Verify the megadetector is installed correctly
 # checkMegadetector(megadir, error = T)
@@ -121,23 +129,25 @@ dat <- runMegadetector(dat
 
 # Apply corrections
 # dat <- readCamtrap(file_final)
-dat <- applyCorrections(dat, correc, outfile = file_final)
+# dat <- applyCorrections(dat, correc, outfile = file_final)
 
 # Add clustered locations (set cluster to the desired distance in meters)
-dat <- assignLocations(dat, deployments = deploy, outfile = file_final, cluster = 500)
+# dat <- assignLocations(dat, deployments = deploy, outfile = file_final, cluster = 500)
 show(dat)
 
 # Are there any unlocated images? If so, give details
-nrow(extractData(dat, "unlocated"))
-summarizeUnlocated(dat)
+# nrow(extractData(dat, "unlocated"))
+# summarizeUnlocated(dat)
 
 # Get images (with animals)
 subdat <- subset(dat, Category == "animal" & Confidence >= 0.1)
-plot(subdat, index = 1)
+# subdat <- subset(dat, Category == "animal")
+# plot(subdat, index = 1)
 
 # If you'd like to drop images containing humans
-# toremove <- subset(dat, Category == "person")
-# subdat <- subset(subdat, !(Filepath %in% toremove@images))
+toremove <- subset(dat, Category == "person")
+subdat <- subset(subdat, !(Filepath %in% toremove@images))
+plot(subdat, index = 1)
 
 ################################################################################
 #### Transfer Images
@@ -146,8 +156,8 @@ plot(subdat, index = 1)
 show(subdat)
 transferImages(subdat
   , directory      = transfer
-#   , collectionname = paste0(collection, "_Animals_NoHumans")
-  , collectionname = collection
+  , collectionname = paste0(collection, "_Animals_NoHumans")
+#   , collectionname = collection
   , batchsize      = 1000
   , progress       = T
   , unlocated      = T

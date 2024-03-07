@@ -392,7 +392,6 @@ createGroup <- function(x, batchsize = 1) {
 # Function to load filelist
 loadFilelist <- function(object, force = F, outfile = NULL, progress = T, overwrite = F) {
 
-
   # Check if the collection exists
   path <- file.path(object@collectionpath, object@collection)
   if (!collectionExists(object)) {
@@ -412,6 +411,7 @@ loadFilelist <- function(object, force = F, outfile = NULL, progress = T, overwr
       }
     }
 
+    # Load directories, then loop through them and identify files
     dirs <- list.dirs(
         path       = path
       , recursive  = F
@@ -438,6 +438,7 @@ loadFilelist <- function(object, force = F, outfile = NULL, progress = T, overwr
       return(file_list)
     })
     images <- unlist(images)
+    images <- as.vector(images)
 
     # If metadata is already present, update it
     if (nrow(object@metadata) > 0) {
@@ -524,7 +525,9 @@ loadMetadata <- function(object, batchsize = 1000, force = F, outfile = NULL, pr
         file.path(object@collectionpath, object@collection, subinfo$Filepath)
       , tags = c( "CreateDate", "ImageWidth", "ImageHeight")
     )
-    newmeta$CreateDate <- ymd_hms(newmeta$CreateDate)
+    if ("CreateDate" %in% names(newmeta)) {
+      newmeta$CreateDate <- ymd_hms(newmeta$CreateDate)
+    }
     newmeta$SourceFile <- NULL
     newmeta            <- cbind(subinfo, newmeta)
     newmeta$Group      <- NULL
