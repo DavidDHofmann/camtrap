@@ -14,12 +14,7 @@ pythondir  <- "/home/david/miniconda3"
 
 imagedir   <- "/media/david/SHUTTLE"
 transfer   <- "/media/david/SHUTTLE/Processed"
-collection <- "Update_2023-12-21"
-
-# Temporary
-megadir    <- "/home/david/Megadetector"
-imagedir   <- "/home/david/Schreibtisch"
-collection <- "Meerkats"
+collection <- "Update_2024-03-29"
 
 # deployment <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/01_Deployments.xlsx"
 # correction <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/04_Corrections.xlsx"
@@ -95,12 +90,12 @@ table(dat@metadata$ImageWidth)
 table(dat@metadata$ImageHeight)
 
 # Resize images that require resizing
-# dat <- resizeImages(dat
-#   , width     = 1920
-#   , height    = 1080
-#   , outfile   = file
-#   , overwrite = T
-# )
+dat <- resizeImages(dat
+  , width     = 1920
+  , height    = 1080
+  , outfile   = file
+  , overwrite = T
+)
 
 # Read detections
 dat <- loadDetections(dat, outfile = file, overwrite = T)
@@ -142,12 +137,11 @@ show(dat)
 # Get images (with animals)
 subdat <- subset(dat, Category == "animal" & Confidence >= 0.1)
 # subdat <- subset(dat, Category == "animal")
-# plot(subdat, index = 1)
+plot(subdat, index = 34)
 
 # If you'd like to drop images containing humans
 toremove <- subset(dat, Category == "person")
 subdat <- subset(subdat, !(Filepath %in% toremove@images))
-plot(subdat, index = 1)
 
 ################################################################################
 #### Transfer Images
@@ -164,22 +158,22 @@ transferImages(subdat
   , overwrite      = T
 )
 
-################################################################################
-#### Link Back Classifications
-################################################################################
-# Load the collection
-dat <- readCamtrap("/home/david/Schreibtisch/Example/HardDrive2/Collection_2023-05.rds")
-
-# Load classifications
-classi <- parseClassifications("/home/david/Schreibtisch/Classifications.csv")
-
-# Assign them
-dat <- assignClassifications(dat, classi)
-
-################################################################################
-#### Visualizations
-################################################################################
-# Visualize some detections
-subdat <- subset(dat, Category %in% c("person", "vehicle", "animal") & Confidence > 0.1)
-par(mfrow = c(2, 2))
-plot(subdat, index = sample(nrow(subdat@metadata), size = 4))
+# ################################################################################
+# #### Link Back Classifications
+# ################################################################################
+# # Load the collection
+# dat <- readCamtrap("/home/david/Schreibtisch/Example/HardDrive2/Collection_2023-05.rds")
+# 
+# # Load classifications
+# classi <- parseClassifications("/home/david/Schreibtisch/Classifications.csv")
+# 
+# # Assign them
+# dat <- assignClassifications(dat, classi)
+# 
+# ################################################################################
+# #### Visualizations
+# ################################################################################
+# # Visualize some detections
+# subdat <- subset(dat, Category %in% c("person", "vehicle", "animal") & Confidence > 0.1)
+# par(mfrow = c(2, 2))
+# plot(subdat, index = sample(nrow(subdat@metadata), size = 4))
