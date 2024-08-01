@@ -9,12 +9,23 @@ rm(list = ls())
 ################################################################################
 # Specify necessary directories
 camtrap    <- "/home/david/ownCloud/Dokumente/Bibliothek/Wissen/R-Scripts/camtrap"
-megadir    <- "/home/david/git"
+megadir    <- "/home/david/Megadetector"
+imagedir   <- "/media/david/CAMERA_BACK"
+transfer   <- "/media/david/CAMERA_BACK/Processed"
+collection <- "Collection_2024-06"
+
+# Only necessary on mac and linux
 pythondir  <- "/home/david/miniconda3"
 
-imagedir   <- "/media/david/SHUTTLE"
-transfer   <- "/media/david/SHUTTLE/Processed"
-collection <- "Update_2024-03-29"
+# # Specify necessary directories
+# camtrap    <- "C:/Users/david/switchdrive/Dokumente/Bibliothek/Wissen/R-Scripts/camtrap"
+# megadir    <- "C:/Megadetector"
+# imagedir   <- "C:/Users/david/Desktop"
+# transfer   <- "C:/Users/david/Desktop"
+# collection <- "SampleImages"
+# 
+# # Only necessary on mac and linux
+# pythondir  <- "/home/david/miniconda3"
 
 # deployment <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/01_Deployments.xlsx"
 # correction <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/04_Corrections.xlsx"
@@ -37,6 +48,16 @@ library(magick)      # To visualize images
 library(terra)       # To do spatial data
 library(pbmcapply)   # To run stuff in parallel
 library(reticulate)  # To use python functions
+
+################################################################################
+#### Verify Installation
+################################################################################
+# Check if all is installed
+checkMegadetector(megadir)
+
+# If not installed already, download and install it
+# downloadMegadetector(megadir)
+# installMegadetector(megadir, environment = "detector")
 
 ################################################################################
 #### Pre-Requisites
@@ -76,8 +97,8 @@ dat <- loadFilelist(dat, outfile = file, overwrite = T)
 show(dat)
 
 # Remove dot-files
-findDotfiles(dat, remove = F)
-findDotfiles(dat, remove = T)
+# findDotfiles(dat, remove = F)
+# findDotfiles(dat, remove = T)
 
 # Verify the file directories
 validateDirectories(dat)
@@ -90,23 +111,19 @@ table(dat@metadata$ImageWidth)
 table(dat@metadata$ImageHeight)
 
 # Resize images that require resizing
-dat <- resizeImages(dat
-  , width     = 1920
-  , height    = 1080
-  , outfile   = file
-  , overwrite = T
-)
+# dat <- resizeImages(dat
+#   , width     = 1920
+#   , height    = 1080
+#   , outfile   = file
+#   , overwrite = T
+# )
 
 # Read detections
-dat <- loadDetections(dat, outfile = file, overwrite = T)
-dat
+# dat <- loadDetections(dat, outfile = file, overwrite = T)
+# dat
 
 # Write to file
 writeCamtrap(dat, file = file, overwrite = T)
-
-# Verify the megadetector is installed correctly
-# checkMegadetector(megadir, error = T)
-# installMegadetector()
 
 # Run the detector
 dat <- runMegadetector(dat
@@ -128,48 +145,48 @@ dat <- runMegadetector(dat
 
 # Add clustered locations (set cluster to the desired distance in meters)
 # dat <- assignLocations(dat, deployments = deploy, outfile = file_final, cluster = 500)
-show(dat)
+# show(dat)
 
 # Are there any unlocated images? If so, give details
 # nrow(extractData(dat, "unlocated"))
 # summarizeUnlocated(dat)
 
 # Get images (with animals)
-subdat <- subset(dat, Category == "animal" & Confidence >= 0.1)
+# subdat <- subset(dat, Category == "animal" & Confidence >= 0.1)
 # subdat <- subset(dat, Category == "animal")
-plot(subdat, index = 34)
+# plot(subdat, index = 34)
 
 # If you'd like to drop images containing humans
-toremove <- subset(dat, Category == "person")
-subdat <- subset(subdat, !(Filepath %in% toremove@images))
+# toremove <- subset(dat, Category == "person")
+# subdat <- subset(subdat, !(Filepath %in% toremove@images))
 
 ################################################################################
 #### Transfer Images
 ################################################################################
 # Transfer them to the output hard-drive
-show(subdat)
-transferImages(subdat
-  , directory      = transfer
-  , collectionname = paste0(collection, "_Animals_NoHumans")
-#   , collectionname = collection
-  , batchsize      = 1000
-  , progress       = T
-  , unlocated      = T
-  , overwrite      = T
-)
-
+# show(subdat)
+# transferImages(subdat
+#   , directory      = transfer
+#   , collectionname = paste0(collection, "_Animals_NoHumans")
+# #   , collectionname = collection
+#   , batchsize      = 1000
+#   , progress       = T
+#   , unlocated      = T
+#   , overwrite      = T
+# )
+#
 # ################################################################################
 # #### Link Back Classifications
 # ################################################################################
 # # Load the collection
 # dat <- readCamtrap("/home/david/Schreibtisch/Example/HardDrive2/Collection_2023-05.rds")
-# 
+#
 # # Load classifications
 # classi <- parseClassifications("/home/david/Schreibtisch/Classifications.csv")
-# 
+#
 # # Assign them
 # dat <- assignClassifications(dat, classi)
-# 
+#
 # ################################################################################
 # #### Visualizations
 # ################################################################################

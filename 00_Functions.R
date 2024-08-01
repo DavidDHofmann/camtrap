@@ -199,8 +199,8 @@ setMethod("plot", signature(x = "camtrap"), function(x, index = 1) {
       exit_code <- suppressWarnings(system2("command", args = c("-v", x), stdout = FALSE))
     } else {
       exit_code <- system(paste("where", x), intern = TRUE)
-  }
-  return(exit_code == 0)
+    }
+  return(length(exit_code) != 0)
 }
 
 # Helper function to resize images
@@ -223,7 +223,8 @@ setMethod("plot", signature(x = "camtrap"), function(x, index = 1) {
   for (i in 1:ngroups) {
 
     # Run Resizing
-    command <- sprintf(paste0("mogrify -resize ", width, "x", height, " %s "), paste(image_path_s[[i]], collapse = " "))
+    # command <- sprintf(paste0("mogrify -resize ", width, "x", height, " %s "), paste(image_path_s[[i]], collapse = " "))
+    command <- sprintf(paste0("magick mogrify -resize ", width, "x", height, " %s "), paste(image_path_s[[i]], collapse = " "))
     system(command)
 
     # Update progress
@@ -320,6 +321,10 @@ validateDirectories <- function(object) {
   cams <- file.path(dat@collectionpath, dat@collection, object@cameras)
   noparse <- sapply(cams, function(x) {
     cams_fetchdates <- list.dirs(path = x, recursive = F, full.names = F)
+    if (length(cams_fetchdates) == 0) {
+      failed <- T
+      return(failed)
+    }
     dates <- tryCatch(ymd(cams_fetchdates)
       , warning = function(w) {return(NA)}
       , error = function(e) {return(NA)}
@@ -330,7 +335,7 @@ validateDirectories <- function(object) {
 
   # Return answer
   if (any(noparse)) {
-      warning("Could not parse fetchdates for: ", basename(cams)[noparse], "\n")
+      warning("Could not parse fetchdates for: ", paste0(basename(cams)[noparse], collapse = " "), "\n")
     } else {
       cat("Successfully parsed fetchdates across all cameras.\n")
   }
@@ -731,9 +736,6 @@ loadDetections <- function(object, outfile = NULL, progress = T, force = F, over
 # Function to download megadetector files
 downloadMegadetector <- function(directory, timeout = 600) {
 
-  # Create megadetector directory
-  directory <- file.path(directory, "Megadetector")
-
   # Check if the directory already exists
   if (!dir.exists(directory)) {
     create <- readline(prompt = paste0(directory, " does not exist. Should it be created? y/n: "))
@@ -750,16 +752,14 @@ downloadMegadetector <- function(directory, timeout = 600) {
   options(timeout = timeout)
 
   # Download files from megadetector if necessary
-  files <- c("yolov5", "cameratraps", "ai4eutils")
+  files <- c("yolov5", "MegaDetector")
   exist <- file.exists(file.path(directory, files))
   files <- files[!exist]
   for (i in files) {
     if (i == "yolov5") {
-        url = "https://github.com/ecologize/yolov5/archive/refs/heads/master.zip"
-      } else if (i == "cameratraps") {
-        url = "https://github.com/ecologize/CameraTraps/archive/refs/heads/master.zip"
+        url <- "https://github.com/ecologize/yolov5/archive/refs/heads/master.zip"
       } else {
-        url = "https://github.com/Microsoft/ai4eutils/archive/refs/heads/master.zip"
+        url <- "https://github.com/agentmorris/MegaDetector/archive/refs/heads/main.zip"
     }
 
     # Download files
@@ -779,21 +779,25 @@ downloadMegadetector <- function(directory, timeout = 600) {
   # Download the latest models
   if (!file.exists(file.path(directory, "md_v5a.0.0.pt"))) {
     download.file(
-        url      = "https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt"
+        url      = "https://github.com/agentmorris/MegaDetector/releases/download/v5.0/md_v5a.0.0.pt"
       , destfile = file.path(directory, "md_v5a.0.0.pt")
     )
   }
   if (!file.exists(file.path(directory, "md_v5b.0.0.pt"))) {
     download.file(
-        url      = "https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5b.0.0.pt"
+        url      = "https://github.com/agentmorris/MegaDetector/releases/download/v5.0/md_v5b.0.0.pt"
       , destfile = file.path(directory, "md_v5b.0.0.pt")
     )
   }
 
-  # We also need to install the bashscript to initiate the megadetector
+  # We also need to install the bashscript and batchscript to initiate the megadetector
   download.file(
       url = "https://raw.githubusercontent.com/DavidDHofmann/RunMegaDetector/main/RunMegaDetector.sh"
     , destfile = file.path(directory, "RunMegaDetector.sh")
+  )
+  download.file(
+      url = "https://raw.githubusercontent.com/DavidDHofmann/RunMegaDetector/main/RunMegaDetector.bat"
+    , destfile = file.path(directory, "RunMegaDetector.bat")
   )
 
   # Reset the timeout option
@@ -823,8 +827,8 @@ installMegadetector <- function(megadetector_dir, environment = "detector") {
 
   # Check if the cameratraps environment already exists, otherwise, install it
   envs <- conda_list()
-  if (!("cameratraps-detector" %in% envs$name)) {
-    envspecs <- file.path(megadetector_dir, paste0("cameratraps/envs/environment-", environment, ".yml"))
+  if (!("megadetector" %in% envs$name)) {
+    envspecs <- file.path(megadetector_dir, paste0("MegaDetector/envs/environment-", environment, ".yml"))
     command <- paste0("mamba env create --file ", envspecs)
     system(command)
   }
@@ -835,20 +839,20 @@ installMegadetector <- function(megadetector_dir, environment = "detector") {
 
 # Function to check if the megadetector works as anticipated
 checkMegadetector <- function(megadetector_dir, error = T) {
-
+  
   # Verify that required folders and files are existing
-  direcs         <- file.path(megadetector_dir, c("yolov5", "cameratraps", "ai4eutils"))
-  models         <- file.path(megadetector_dir, c("md_v5a.0.0.pt", "md_v5b.0.0.pt"))
-  runfile        <- file.path(megadetector_dir, "RunMegaDetector.sh")
-  dirs_exist     <- dir.exists(direcs)
-  models_exist   <- file.exists(models)
-  runfile_exists <- file.exists(runfile)
+  direcs          <- file.path(megadetector_dir, c("yolov5", "MegaDetector"))
+  models          <- file.path(megadetector_dir, c("md_v5a.0.0.pt", "md_v5b.0.0.pt"))
+  runfiles        <- file.path(megadetector_dir, c("RunMegaDetector.sh", "RunMegaDetector.bat"))
+  dirs_exist      <- dir.exists(direcs)
+  models_exist    <- file.exists(models)
+  runfiles_exists <- file.exists(runfiles)
 
   # Check if the megadetector environment is installed
-  env_exists <- "cameratraps-detector" %in% conda_list()$name
+  env_exists <- "megadetector" %in% conda_list()$name
 
   # If anything is missing, state this
-  if (!all(c(dirs_exist, models_exist, runfile_exists))) {
+  if (!all(c(dirs_exist, models_exist, runfiles_exists))) {
     if (error) {
       stop("Some files are missing. Please run 'downloadMegadetector()'\n")
     } else {
@@ -856,9 +860,9 @@ checkMegadetector <- function(megadetector_dir, error = T) {
     }
   } else if (!env_exists) {
     if (error) {
-      stop("cameratraps-detector environment does not exist. Please run 'installMegadetector()'\n")
+      stop("megadetector environment does not exist. Please run 'installMegadetector()'\n")
     } else {
-      cat("cameratraps-detector environment does not exist. Please run 'installMegadetector()'\n")
+      cat("megadetector environment does not exist. Please run 'installMegadetector()'\n")
     }
   }
 }
@@ -866,7 +870,7 @@ checkMegadetector <- function(megadetector_dir, error = T) {
 # Function to run the megadetector
 runMegadetector <- function(object
     , megadetector_dir
-    , python_dir
+    , python_dir = NULL
     , model
     , checkpoint_freq = 10000
     , outfile
@@ -894,24 +898,43 @@ runMegadetector <- function(object
   if (length(model) > 1) {
     stop("'model' should be of length 1.\n")
   }
-  model      <- match.arg(model, choices = c("5a", "5b"))
-  model_file <- ifelse(model == "5a", yes = "md_v5a.0.0.pt", no = "md_v5b.0.0.pt")
+  
+  # For some reason, specifying the model file does not work on windows
+  model <- match.arg(model, choices = c("5a", "5b"))
+  unix  <- !(Sys.info()["sysname"] %in% c("Windows"))
+  if (unix) {
+    model_file <- ifelse(model == "5a", yes = "md_v5a.0.0.pt", no = "md_v5b.0.0.pt")
+    model_file <- file.path(megadir, model_file)
+  } else {
+    model_file <- ifelse(model == "5a", yes = "MDV5A", no = "MDV5B")
+  }
 
   # Ensure the images exist
   if (!collectionExists(object)) {
     stop("Collection ", object@collection, " does not exist\n")
   }
-
+  
   # Build the command to run the megadetector
-  part_01 <- "bash"
-  part_02 <- file.path(megadetector_dir, "RunMegaDetector.sh")
-  part_03 <- shQuote(file.path(object@collectionpath, object@collection))
-  part_04 <- megadetector_dir
-  part_05 <- model_file
-  part_06 <- python_dir
-  part_07 <- checkpoint_freq
-  command <- paste(part_01, part_02, part_03, part_04, part_05, part_06, part_07)
-
+  if (unix) {
+    part_01 <- "bash"
+    part_02 <- file.path(megadetector_dir, "RunMegaDetector.sh")
+    part_03 <- shQuote(file.path(object@collectionpath, object@collection))
+    part_04 <- megadetector_dir
+    part_05 <- model_file
+    part_06 <- python_dir
+    part_07 <- checkpoint_freq
+    command <- paste(part_01, part_02, part_03, part_04, part_05, part_06, part_07)
+  } else {
+    part_01 <- file.path(megadetector_dir, "RunMegaDetector.bat")
+    part_02 <- file.path(object@collectionpath, object@collection)
+    part_03 <- megadetector_dir
+    part_04 <- model_file
+    part_05 <- checkpoint_freq
+    command <- paste(part_01, part_02, part_03, part_04, part_05)
+    command <- gsub(command, pattern = "/", replacement = "\\\\")
+  }
+  
+  # Build the command to run the megadetector
   # Run the command
   system(command, ignore.stdout = !messages, ignore.stderr = !messages)
 
