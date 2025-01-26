@@ -180,6 +180,28 @@ setMethod("plot", signature(x = "camtrap"), function(x, index = 1) {
       }
     }
 
+    # Check if there are any classifications to overlay
+    if (nrow(x@classifications) > 0) {
+        classis <- subset(x@classifications, Filepath == x@images[i])
+      } else {
+        classis <- data.frame(Dummy = character())
+    }
+
+    # If three are, overlay them
+    if (nrow(classis) > 0) {
+      species <- unique(classis$Species)
+      species <- paste(species, collapse = ", ")
+      text(
+          x      = 0 * dims$width
+        , y      = 0.05 * dims$height
+        , labels = species
+        , cex    = 5
+        , col    = "#76CFFF"
+        , adj    = c(0, 0)
+      )
+    }
+
+
     # Plot
     dev.off()
     plot(img)
