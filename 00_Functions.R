@@ -226,34 +226,12 @@ setMethod("plot", signature(x = "camtrap"), function(x, index = 1) {
 }
 
 # Helper function to resize images
-.resizeImages <- function(image_path, width = 1920, height = 1080, batchsize = 100, progress = T) {
+.resizeImages <- function(image_path, width = 1920, height = 1080) {
 
-  # Ensure that mogrify has been installed
-  if (!.isInstalled("mogrify")) {
-    stop("Please install ImageMagick on your system. For details see https://imagemagick.org/\n")
-  }
-
-  # Create batches
-  groups       <- createGroup(image_path, batchsize = batchsize)
-  ngroups      <- length(unique(groups))
-  image_path_s <- split(image_path, groups)
-
-  # Loop through the groups and apply resizing
-  if (progress) {
-    pb <- txtProgressBar(0, ngroups, style = 3)
-  }
-  for (i in 1:ngroups) {
-
-    # Run Resizing
-    # command <- sprintf(paste0("mogrify -resize ", width, "x", height, " %s "), paste(image_path_s[[i]], collapse = " "))
-    command <- sprintf(paste0("magick mogrify -resize ", width, "x", height, " %s "), paste(image_path_s[[i]], collapse = " "))
-    system(command)
-
-    # Update progress
-    if (progress) {
-      setTxtProgressBar(pb, i)
-    }
-  }
+  # Run Resizing
+  # command <- sprintf(paste0("mogrify -resize ", width, "x", height, " %s "), paste(image_path_s[[i]], collapse = " "))
+  command <- sprintf(paste0("magick mogrify -resize ", width, "x", height, " %s "), paste(image_path, collapse = " "))
+  system(command)
 }
 
 # Function to rewrite images in a camtrap object
@@ -279,26 +257,114 @@ resizeImages <- function(object, width, height, outfile = NULL, overwrite = F, b
     return(object)
   }
 
-  # Those images need to be resized and the metadata needs to be updated. We can
-  # simply subset the object accordingly and later update the metadata again
-  object@metadata <- subset(object@metadata, !(Filepath %in% subsetted@images))
-  images <- file.path(subsetted@collectionpath, subsetted@collection, subsetted@images)
+  # Create batches
+  groups       <- createGroup(subsetted@images, batchsize = batchsize)
+  ngroups      <- length(unique(groups))
+  image_path_s <- split(subsetted@images, groups)
 
-  # Resize those images
-  .resizeImages(images
-    , width     = width
-    , height    = height
-    , batchsize = batchsize
-    , progress  = progress
-  )
+  # Resize images
+  if (progress) {
+    pb <- txtProgressBar(0, ngroups, style = 3)
+  }
+  for (i in 1:ngroups) {
 
-  # Update the metadata and return the object
-  object <- loadMetadata(object)
-  if (!is.null(outfile)) {
-    object <- writeCamtrap(object, outfile, overwrite = overwrite)
+    # Remove associated metadata from camtrap object
+    object@metadata <- subset(object@metadata, !(Filepath %in% image_path_s[[i]]))
+    images <- file.path(subsetted@collectionpath, subsetted@collection, image_path_s[[i]])
+    images <- sort(images)
+
+    # Resize those images
+    .resizeImages(images
+      , width     = width
+      , height    = height
+    )
+
+    # Reload metadata
+    object <- loadMetadata(object, progress = F)
+
+    # Store to file
+    if (!is.null(outfile)) {
+      object <- writeCamtrap(object, outfile, overwrite = overwrite)
+    }
   }
   return(object)
 }
+
+# # Helper function to resize images
+# .resizeImages <- function(image_path, width = 1920, height = 1080, batchsize = 100, progress = T) {
+# 
+#   # Ensure that mogrify has been installed
+#   if (!.isInstalled("magick")) {
+#     stop("Please install ImageMagick on your system. For details see https://imagemagick.org/\n")
+#   }
+# 
+#   # Create batches
+#   groups       <- createGroup(image_path, batchsize = batchsize)
+#   ngroups      <- length(unique(groups))
+#   image_path_s <- split(image_path, groups)
+# 
+#   # Loop through the groups and apply resizing
+#   if (progress) {
+#     pb <- txtProgressBar(0, ngroups, style = 3)
+#   }
+#   for (i in 1:ngroups) {
+# 
+#     # Run Resizing
+#     # command <- sprintf(paste0("mogrify -resize ", width, "x", height, " %s "), paste(image_path_s[[i]], collapse = " "))
+#     command <- sprintf(paste0("magick mogrify -resize ", width, "x", height, " %s "), paste(image_path_s[[i]], collapse = " "))
+#     system(command)
+# 
+#     # Update progress
+#     if (progress) {
+#       setTxtProgressBar(pb, i)
+#     }
+#   }
+# }
+# 
+# # Function to rewrite images in a camtrap object
+# resizeImages <- function(object, width, height, outfile = NULL, overwrite = F, batchsize = 100, progress = T) {
+# 
+#   # Only works when metadata is not null
+#   if (nrow(object@metadata) == 0) {
+#     cat("Metadata associated with the images needs to be loaded first.\n")
+#   }
+# 
+#   # Check for images that do not fulfill the specified width and size
+#   # requirements
+#   subsetted <- subset(object, subset =
+#       ImageWidth < width - 1
+#     | ImageWidth > width + 1
+#     | ImageHeight < height - 1
+#     | ImageHeight > height + 1
+#   )
+# 
+#   # If there are no images to adjust, stop the function
+#   if (nrow(subsetted@metadata) == 0) {
+#     cat("All images already have the correct dimensions.\n")
+#     return(object)
+#   }
+# 
+#   # Those images need to be resized and the metadata needs to be updated. We can
+#   # simply subset the object accordingly and later update the metadata again
+#   object@metadata <- subset(object@metadata, !(Filepath %in% subsetted@images))
+#   images <- file.path(subsetted@collectionpath, subsetted@collection, subsetted@images)
+#   images <- sort(images)
+# 
+#   # Resize those images
+#   .resizeImages(images
+#     , width     = width
+#     , height    = height
+#     , batchsize = batchsize
+#     , progress  = progress
+#   )
+# 
+#   # Update the metadata and return the object
+#   object <- loadMetadata(object)
+#   if (!is.null(outfile)) {
+#     object <- writeCamtrap(object, outfile, overwrite = overwrite)
+#   }
+#   return(object)
+# }
 
 # Function to store a camtrap collection
 writeCamtrap <- function(object, file, overwrite = F) {
@@ -594,6 +660,9 @@ updateMetadata <- function(object, outfile = NULL, progress = T, overwrite = F) 
   if (length(toadd) > 0) {
     object <- loadMetadata(object, progress = progress)
   }
+
+  # Order metadata
+  object@metadata <- arrange(object@metadata, Filepath)
 
   # Return the updated object
   if (!is.null(outfile)) {

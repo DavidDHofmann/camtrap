@@ -7,29 +7,28 @@ rm(list = ls())
 ################################################################################
 #### Paths and Packages
 ################################################################################
-# Specify necessary directories
-camtrap    <- "/home/david/ownCloud/01_Private/Bibliothek/Wissen/R-Scripts/camtrap"
-camtrap    <- "D:/SwitchDrive/01_Private/Bibliothek/Wissen/R-Scripts/camtrap"
-megadir    <- "/home/david/Megadetector"
-imagedir   <- "/media/david/CAMERA_MAST/UZH_CameratrapSurvey/Data/01_Raw"
-transfer   <- "/media/david/CAMERA_MAST/UZH_CameratrapSurvey/Data/02_Processed"
-collection <- "Collection_2022-06"
-
-# Only necessary on mac and linux
-pythondir  <- "/home/david/miniconda3"
-
 # # Specify necessary directories
-# camtrap    <- "C:/Users/david/switchdrive/Dokumente/Bibliothek/Wissen/R-Scripts/camtrap"
-# megadir    <- "C:/Megadetector"
-# imagedir   <- "C:/Users/david/Desktop"
-# transfer   <- "C:/Users/david/Desktop"
-# collection <- "SampleImages"
+# camtrap    <- "/home/david/ownCloud/01_Private/Bibliothek/Wissen/R-Scripts/camtrap"
+# megadir    <- "/home/david/Megadetector"
+# imagedir   <- "/media/david/CAMERA_MAST/UZH_CameratrapSurvey/Data/01_Raw"
+# transfer   <- "/media/david/CAMERA_MAST/UZH_CameratrapSurvey/Data/02_Processed"
+# collection <- "Collection_2022-06"
 # 
 # # Only necessary on mac and linux
 # pythondir  <- "/home/david/miniconda3"
 
-deployment <- "/home/david/ownCloud/General/Cameratrapping/01_General/01_Deployments.xlsx"
-correction <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/04_Corrections.xlsx"
+# Specify necessary directories
+camtrap    <- "D:/SwitchDrive/01_Private/Bibliothek/Wissen/R-Scripts/camtrap"
+megadir    <- "C:/Megadetector"
+imagedir   <- "F:/UZH_CameratrapSurvey/Data/01_Raw"
+transfer   <- "F:/UZH_CameratrapSurvey/Data/02_Processed"
+collection <- "Collection_2024-12"
+
+# # Only necessary on mac and linux
+# pythondir  <- "/home/david/miniconda3"
+
+# deployment <- "/home/david/ownCloud/General/Cameratrapping/01_General/01_Deployments.xlsx"
+# correction <- "/home/david/ownCloud/University/15. PhD/General/Cameratrapping/01_General/04_Corrections.xlsx"
 
 # Specify file to which you want to store the camtrap object
 file       <- file.path(imagedir, paste0(collection, ".rds"))
@@ -54,7 +53,7 @@ library(reticulate)  # To use python functions
 #### Verify Installation
 ################################################################################
 # Check if all is installed
-checkMegadetector(megadir)
+# checkMegadetector(megadir)
 
 # If not installed already, download and install it
 # downloadMegadetector(megadir)
@@ -64,8 +63,8 @@ checkMegadetector(megadir)
 #### Pre-Requisites
 ################################################################################
 # Load deployments, corrections, and classifications (if they exist)
-deploy <- parseDeployments(deployment) %>% select(Camera, Longitude, Latitude, Start, End)
-correc <- parseCorrections(correction)
+# deploy <- parseDeployments(deployment) %>% select(Camera, Longitude, Latitude, Start, End)
+# correc <- parseCorrections(correction)
 
 # Specify filepath to which the camtrap object should be stored
 if (file.exists(file)) {
@@ -95,7 +94,7 @@ collectionExists(dat)
 
 # Read the filelist
 dat <- loadFilelist(dat, outfile = file, overwrite = T)
-dat <- loadDetections(dat)
+# dat <- loadDetections(dat)
 
 # Remove dot-files
 # findDotfiles(dat, remove = F)
@@ -108,19 +107,19 @@ validateDirectories(dat)
 dat <- loadMetadata(dat, outfile = file, batchsize = 1000, overwrite = T)
 
 # If you need to update metadata
-dat <- updateMetadata(dat)
+# dat <- updateMetadata(dat)
 
 # Check image dimensions
 table(dat@metadata$ImageWidth)
 table(dat@metadata$ImageHeight)
 
 # Resize images that require resizing
-# dat <- resizeImages(dat
-#   , width     = 1920
-#   , height    = 1080
-#   , outfile   = file
-#   , overwrite = T
-# )
+dat <- resizeImages(dat
+  , width     = 1920
+  , height    = 1080
+  , outfile   = file
+  , overwrite = T
+)
 
 # Read detections
 dat <- loadDetections(dat, outfile = file, overwrite = T)
@@ -256,4 +255,3 @@ classi <- parseClassifications("/media/david/CAMERA_MAST/UZH_CameratrapSurvey/Da
 
 # Assign them
 dat <- assignClassifications(dat, classi)
-
